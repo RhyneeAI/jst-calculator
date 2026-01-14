@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Backpropagation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .input-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .input-group input {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .results-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-box {
+            background: #e8e8e8;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .result-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border-bottom: 2px solid #999;
+            padding-bottom: 8px;
+        }
+
+        .result-item {
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.8;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .formula {
+            color: #0066cc;
+            font-family: 'Courier New', monospace;
+            display: block;
+            margin: 5px 0;
+            background: #f0f8ff;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .calculation {
+            color: #006600;
+            font-family: 'Courier New', monospace;
+            display: block;
+            margin: 5px 0;
+        }
+
+        .result {
+            color: #cc0000;
+            font-weight: bold;
+            display: block;
+            margin-top: 5px;
+        }
+
+        #dynamicWeights {
+            display: none;
+        }
+
+        .weights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .subsection {
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Neural Network Backpropagation Calculator</h1>
+        
+        <div class="input-section">
+            <div class="section-title">Konfigurasi Layer</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="numInputs">Jumlah Input (X):</label>
+                    <input type="number" id="numInputs" value="3" min="1" max="10">
+                </div>
+                <div class="input-group">
+                    <label for="numHidden">Jumlah Hidden (Z):</label>
+                    <input type="number" id="numHidden" value="2" min="1" max="10">
+                </div>
+                <div class="input-group">
+                    <label for="numOutputs">Jumlah Output (Y):</label>
+                    <input type="number" id="numOutputs" value="2" min="1" max="10">
+                </div>
+                <div class="input-group">
+                    <label for="learningRate">Learning Rate:</label>
+                    <input type="number" id="learningRate" value="0.1" step="0.01" min="0.01">
+                </div>
+            </div>
+            <button class="btn" onclick="generateInputs()">Generate Input Fields</button>
+        </div>
+
+        <div id="dynamicInputs" class="hidden">
+            <div class="input-section">
+                <div class="section-title">Input Values (X)</div>
+                <div class="input-grid" id="inputValues"></div>
+            </div>
+
+            <div class="input-section">
+                <div class="section-title">Bias Hidden Layer (B_Z)</div>
+                <div class="input-grid" id="biasHidden"></div>
+            </div>
+
+            <div class="input-section">
+                <div class="section-title">Bias Output Layer (B_Y)</div>
+                <div class="input-grid" id="biasOutput"></div>
+            </div>
+
+            <div class="input-section">
+                <div class="section-title">Weights Input to Hidden (W_X_Z)</div>
+                <div class="weights-grid" id="weightsInputHidden"></div>
+            </div>
+
+            <div class="input-section">
+                <div class="section-title">Weights Hidden to Output (W_Z_Y)</div>
+                <div class="weights-grid" id="weightsHiddenOutput"></div>
+            </div>
+
+            <div class="input-section">
+                <div class="section-title">Target Values</div>
+                <div class="input-grid" id="targetValues"></div>
+            </div>
+
+            <button class="btn" onclick="calculate()">Hitung Backpropagation</button>
+        </div>
+
+        <div id="results" class="results-section hidden"></div>
+    </div>
+
+    <script>
+        let config = {
+            numInputs: 3,
+            numHidden: 2,
+            numOutputs: 2,
+            learningRate: 0.1
+        };
+
+        function sigmoid(x) {
+            return 1 / (1 + Math.exp(-x));
+        }
+
+        function sigmoidDerivative(y) {
+            return y * (1 - y);
+        }
+
+        function generateInputs() {
+            config.numInputs = parseInt(document.getElementById('numInputs').value);
+            config.numHidden = parseInt(document.getElementById('numHidden').value);
+            config.numOutputs = parseInt(document.getElementById('numOutputs').value);
+            config.learningRate = parseFloat(document.getElementById('learningRate').value);
+
+            // Generate Input Values
+            let inputValuesHTML = '';
+            for (let i = 1; i <= config.numInputs; i++) {
+                const defaultVal = i === 1 ? 0.5 : (i === 2 ? 0.7 : 0.3);
+                inputValuesHTML += `
+                    <div class="input-group">
+                        <label>X${i}:</label>
+                        <input type="number" id="X${i}" value="${defaultVal}" step="0.1">
+                    </div>
+                `;
+            }
+            document.getElementById('inputValues').innerHTML = inputValuesHTML;
+
+            // Generate Bias Hidden
+            let biasHiddenHTML = '';
+            for (let i = 1; i <= config.numHidden; i++) {
+                biasHiddenHTML += `
+                    <div class="input-group">
+                        <label>B_Z${i}:</label>
+                        <input type="number" id="B_Z${i}" value="${i === 1 ? 0.1 : 0.2}" step="0.1">
+                    </div>
+                `;
+            }
+            document.getElementById('biasHidden').innerHTML = biasHiddenHTML;
+
+            // Generate Bias Output
+            let biasOutputHTML = '';
+            for (let i = 1; i <= config.numOutputs; i++) {
+                biasOutputHTML += `
+                    <div class="input-group">
+                        <label>B_Y${i}:</label>
+                        <input type="number" id="B_Y${i}" value="${i === 1 ? 0.2 : 0.2}" step="0.1">
+                    </div>
+                `;
+            }
+            document.getElementById('biasOutput').innerHTML = biasOutputHTML;
+
+            // Generate Weights Input to Hidden
+            let weightsIHHTML = '';
+            const defaultWeightsIH = {
+                'W_X1_Z1': 0.7, 'W_X1_Z2': 0.3,
+                'W_X2_Z1': 0.4, 'W_X2_Z2': 0.6,
+                'W_X3_Z1': 0.5, 'W_X3_Z2': 0.2
+            };
+            for (let i = 1; i <= config.numInputs; i++) {
+                for (let j = 1; j <= config.numHidden; j++) {
+                    const key = `W_X${i}_Z${j}`;
+                    const defaultVal = defaultWeightsIH[key] || 0.1;
+                    weightsIHHTML += `
+                        <div class="input-group">
+                            <label>${key}:</label>
+                            <input type="number" id="${key}" value="${defaultVal}" step="0.1">
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('weightsInputHidden').innerHTML = weightsIHHTML;
+
+            // Generate Weights Hidden to Output
+            let weightsHOHTML = '';
+            const defaultWeightsHO = {
+                'W_Z1_Y1': 0.9, 'W_Z1_Y2': 0.2,
+                'W_Z2_Y1': 0.1, 'W_Z2_Y2': 0.4
+            };
+            for (let i = 1; i <= config.numHidden; i++) {
+                for (let j = 1; j <= config.numOutputs; j++) {
+                    const key = `W_Z${i}_Y${j}`;
+                    const defaultVal = defaultWeightsHO[key] || 0.1;
+                    weightsHOHTML += `
+                        <div class="input-group">
+                            <label>${key}:</label>
+                            <input type="number" id="${key}" value="${defaultVal}" step="0.1">
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('weightsHiddenOutput').innerHTML = weightsHOHTML;
+
+            // Generate Target Values
+            let targetHTML = '';
+            for (let i = 1; i <= config.numOutputs; i++) {
+                targetHTML += `
+                    <div class="input-group">
+                        <label>Target Y${i}:</label>
+                        <input type="number" id="Target_Y${i}" value="1" step="0.1">
+                    </div>
+                `;
+            }
+            document.getElementById('targetValues').innerHTML = targetHTML;
+
+            document.getElementById('dynamicInputs').classList.remove('hidden');
+        }
+
+        function calculate() {
+            console.log('s');
+            
+            // Collect inputs
+            const X = [];
+            for (let i = 1; i <= config.numInputs; i++) {
+                X.push(parseFloat(document.getElementById(`X${i}`).value));
+            }
+
+            const B_Z = [];
+            for (let i = 1; i <= config.numHidden; i++) {
+                B_Z.push(parseFloat(document.getElementById(`B_Z${i}`).value));
+            }
+
+            const B_Y = [];
+            for (let i = 1; i <= config.numOutputs; i++) {
+                B_Y.push(parseFloat(document.getElementById(`B_Y${i}`).value));
+            }
+
+            const W_XZ = [];
+            for (let i = 1; i <= config.numInputs; i++) {
+                const row = [];
+                for (let j = 1; j <= config.numHidden; j++) {
+                    row.push(parseFloat(document.getElementById(`W_X${i}_Z${j}`).value));
+                }
+                W_XZ.push(row);
+            }
+
+            const W_ZY = [];
+            for (let i = 1; i <= config.numHidden; i++) {
+                const row = [];
+                for (let j = 1; j <= config.numOutputs; j++) {
+                    row.push(parseFloat(document.getElementById(`W_Z${i}_Y${j}`).value));
+                }
+                W_ZY.push(row);
+            }
+
+            const Target = [];
+            for (let i = 1; i <= config.numOutputs; i++) {
+                Target.push(parseFloat(document.getElementById(`Target_Y${i}`).value));
+            }
+
+            // Forward Pass - Hidden Layer
+            const Z_net = [];
+            const Z = [];
+            const Z_formulas = [];
+            const Z_calculations = [];
+            
+            for (let j = 0; j < config.numHidden; j++) {
+                let sum = B_Z[j];
+                let formula = `Z${j+1} = σ(`;
+                let calc = `Z${j+1} = σ(`;
+                
+                for (let i = 0; i < config.numInputs; i++) {
+                    sum += W_XZ[i][j] * X[i];
+                    formula += `W_X${i+1}_Z${j+1} × X${i+1} + `;
+                    calc += `(${W_XZ[i][j]} × ${X[i]}) + `;
+                }
+                
+                formula += `B_Z${j+1})`;
+                calc += `${B_Z[j]})`;
+                
+                Z_net.push(sum);
+                Z.push(sigmoid(sum));
+                Z_formulas.push({
+                    formula: formula,
+                    calculation: calc + ` = σ(${fourDigitsDec(sum)})`,
+                    result: sigmoid(sum)
+                });
+            }
+
+            // Forward Pass - Output Layer
+            const Y_net = [];
+            const Y = [];
+            const Y_formulas = [];
+            
+            for (let j = 0; j < config.numOutputs; j++) {
+                let sum = B_Y[j];
+                let formula = `Y${j+1} = σ(`;
+                let calc = `Y${j+1} = σ(`;
+                
+                for (let i = 0; i < config.numHidden; i++) {
+                    sum += W_ZY[i][j] * Z[i];
+                    formula += `W_Z${i+1}_Y${j+1} × Z${i+1} + `;
+                    calc += `(${W_ZY[i][j]} × ${fourDigitsDec(Z[i])}) + `;
+                }
+                
+                formula += `B_Y${j+1})`;
+                calc += `${B_Y[j]})`;
+                
+                Y_net.push(sum);
+                Y.push(sigmoid(sum));
+                Y_formulas.push({
+                    formula: formula,
+                    calculation: calc + ` = σ(${fourDigitsDec(sum)})`,
+                    result: sigmoid(sum)
+                });
+            }
+
+            // Error & Delta Output
+            let MSE = 0;
+            let mse_parts = [];
+            for (let i = 0; i < config.numOutputs; i++) {
+                const error = Math.pow(Target[i] - Y[i], 2);
+                MSE += error;
+                mse_parts.push(`(${Target[i]} - ${fourDigitsDec(Y[i])})²`);
+            }
+            MSE /= config.numOutputs;
+            
+            const mse_formula = {
+                formula: `MSE = (${mse_parts.join(' + ')}) / ${config.numOutputs}`,
+                result: MSE
+            };
+
+            const dY = [];
+            const dY_formulas = [];
+            for (let i = 0; i < config.numOutputs; i++) {
+                const delta = (Y[i] - Target[i]) * sigmoidDerivative(Y[i]);
+                dY.push(delta);
+                dY_formulas.push({
+                    formula: `dY${i+1} = (Y${i+1} - T) × σ'(Y${i+1})`,
+                    calculation: `dY${i+1} = (${fourDigitsDec(Y[i])} - ${Target[i]}) × (${fourDigitsDec(Y[i])} × (1 - ${fourDigitsDec(Y[i])}))`,
+                    result: delta
+                });
+            }
+
+            // Update Weights & Bias - Output Layer
+            const new_W_ZY = [];
+            const new_W_ZY_formulas = [];
+            for (let i = 0; i < config.numHidden; i++) {
+                const row = [];
+                for (let j = 0; j < config.numOutputs; j++) {
+                    const newWeight = W_ZY[i][j] - config.learningRate * dY[j] * Z[i];
+                    row.push(newWeight);
+                    new_W_ZY_formulas.push({
+                        formula: `W_Z${i+1}_Y${j+1} = W_Z${i+1}_Y${j+1} - α × dY${j+1} × Z${i+1}`,
+                        calculation: `W_Z${i+1}_Y${j+1} = ${W_ZY[i][j]} - ${config.learningRate} × ${fourDigitsDec(dY[j])} × ${fourDigitsDec(Z[i])}`,
+                        result: newWeight,
+                        name: `W_Z${i+1}_Y${j+1}`
+                    });
+                }
+                new_W_ZY.push(row);
+            }
+
+            const new_B_Y = [];
+            const new_B_Y_formulas = [];
+            for (let i = 0; i < config.numOutputs; i++) {
+                const newBias = B_Y[i] - config.learningRate * dY[i];
+                new_B_Y.push(newBias);
+                new_B_Y_formulas.push({
+                    formula: `B_Y${i+1} = B_Y${i+1} - α × dY${i+1}`,
+                    calculation: `B_Y${i+1} = ${B_Y[i]} - ${config.learningRate} × ${fourDigitsDec(dY[i])}`,
+                    result: newBias,
+                    name: `B_Y${i+1}`
+                });
+            }
+
+            // Delta Hidden Layer
+            const dZ = [];
+            const dZ_formulas = [];
+            for (let i = 0; i < config.numHidden; i++) {
+                let sum = 0;
+                let formula = `dZ${i+1} = (`;
+                let calc = `dZ${i+1} = (`;
+                
+                for (let j = 0; j < config.numOutputs; j++) {
+                    sum += dY[j] * W_ZY[i][j];
+                    formula += `dY${j+1} × W_Z${i+1}_Y${j+1} + `;
+                    calc += `(${fourDigitsDec(dY[j])} × ${W_ZY[i][j]}) + `;
+                }
+                
+                formula = formula.slice(0, -3) + `) × σ'(Z${i+1})`;
+                calc = calc.slice(0, -3) + `) × (${fourDigitsDec(Z[i])} × (1 - ${fourDigitsDec(Z[i])}))`;
+                
+                const delta = sum * sigmoidDerivative(Z[i]);
+                dZ.push(delta);
+                dZ_formulas.push({
+                    formula: formula,
+                    calculation: calc,
+                    result: delta
+                });
+            }
+
+
+            // Update Weights & Bias - Hidden Layer
+            const new_W_XZ = [];
+            const new_W_XZ_formulas = [];
+            for (let i = 0; i < config.numInputs; i++) {
+                const row = [];
+                for (let j = 0; j < config.numHidden; j++) {
+                    const newWeight = W_XZ[i][j] - config.learningRate * dZ[j] * X[i];
+                    row.push(newWeight);
+                    new_W_XZ_formulas.push({
+                        formula: `W_X${i+1}_Z${j+1} = W_X${i+1}_Z${j+1} - α × dZ${j+1} × X${i+1}`,
+                        calculation: `W_X${i+1}_Z${j+1} = ${W_XZ[i][j]} - ${config.learningRate} × ${fourDigitsDec(dZ[j])} × ${X[i]}`,
+                        result: newWeight,
+                        name: `W_X${i+1}_Z${j+1}`
+                    });
+                }
+                new_W_XZ.push(row);
+            }
+
+            const new_B_Z = [];
+            const new_B_Z_formulas = [];
+            for (let i = 0; i < config.numHidden; i++) {
+                const newBias = B_Z[i] - config.learningRate * dZ[i];
+                new_B_Z.push(newBias);
+                new_B_Z_formulas.push({
+                    formula: `B_Z${i+1} = B_Z${i+1} - α × dZ${i+1}`,
+                    calculation: `B_Z${i+1} = ${B_Z[i]} - ${config.learningRate} × ${fourDigitsDec(dZ[i])}`,
+                    result: newBias,    
+                    name: `B_Z${i+1}`
+                });
+            }
+
+            // Display Results
+            displayResults({
+                Z_formulas, Y_formulas, mse_formula, dY_formulas, dZ_formulas,
+                new_W_ZY_formulas, new_B_Y_formulas, new_W_XZ_formulas, new_B_Z_formulas,
+                X, Target, W_XZ, W_ZY, B_Z, B_Y
+            });
+        }
+
+        function displayResults(data) {
+            let html = '';
+
+            // Diketahui
+            html += '<div class="result-box"><h3>Diketahui</h3>';
+            for (let i = 0; i < config.numInputs; i++) {
+                html += `<div class="result-item">X${i+1} = ${data.X[i]}</div>`;
+            }
+            for (let i = 0; i < config.numHidden; i++) {
+                html += `<div class="result-item">B_Z${i+1} = ${data.B_Z[i]}</div>`;
+            }
+            for (let i = 0; i < config.numOutputs; i++) {
+                html += `<div class="result-item">B_Y${i+1} = ${data.B_Y[i]}</div>`;
+            }
+            for (let i = 0; i < config.numInputs; i++) {
+                for (let j = 0; j < config.numHidden; j++) {
+                    html += `<div class="result-item">W_X${i+1}_Z${j+1} = ${data.W_XZ[i][j]}</div>`;
+                }
+            }
+            for (let i = 0; i < config.numHidden; i++) {
+                for (let j = 0; j < config.numOutputs; j++) {
+                    html += `<div class="result-item">W_Z${i+1}_Y${j+1} = ${data.W_ZY[i][j]}</div>`;
+                }
+            }
+            html += `<div class="result-item">Learning Rate (α) = ${config.learningRate}</div>`;
+            html += `<div class="result-item">Target = ${data.Target.join(', ')}</div>`;
+            html += '</div>';
+
+            // Forward Pass
+            html += '<div class="result-box"><h3>Forward Pass</h3>';
+            html += '<div class="subsection">Hidden Layer:</div>';
+            for (let i = 0; i < data.Z_formulas.length; i++) {
+                html += `<div class="result-item">
+                    <span class="formula">${data.Z_formulas[i].formula}</span>
+                    <span class="calculation">${data.Z_formulas[i].calculation}</span>
+                    <span class="result">= ${fourDigitsDec(data.Z_formulas[i].result)}</span>
+                </div>`;
+            }
+            html += '<div class="subsection">Output Layer:</div>';
+            for (let i = 0; i < data.Y_formulas.length; i++) {
+                html += `<div class="result-item">
+                    <span class="formula">${data.Y_formulas[i].formula}</span>
+                    <span class="calculation">${data.Y_formulas[i].calculation}</span>
+                    <span class="result">= ${fourDigitsDec(data.Y_formulas[i].result)}</span>
+                </div>`;
+            }
+            html += '</div>';
+
+            // Error & Delta Output
+            html += '<div class="result-box"><h3>Error & Delta Output</h3>';
+            html += `<div class="result-item">
+                <span class="formula">${data.mse_formula.formula}</span>
+                <span class="result">MSE = ${fourDigitsDec(data.mse_formula.result)}</span>
+            </div>`;
+            for (let i = 0; i < data.dY_formulas.length; i++) {
+                html += `<div class="result-item">
+                    <span class="formula">${data.dY_formulas[i].formula}</span>
+                    <span class="calculation">${data.dY_formulas[i].calculation}</span>
+                    <span class="result">= ${fourDigitsDec(data.dY_formulas[i].result)}</span>
+                </div>`;
+            }
+            html += '</div>';
+
+            // Update Bobot & Bias Output
+            html += '<div class="result-box"><h3>Update Bobot & Bias Output (New)</h3>';
+            html += '<div class="subsection">Bobot:</div>';
+            for (let i = 0; i < data.new_W_ZY_formulas.length; i++) {
+                html += `<div class="result-item">
+                    <span class="formula">${data.new_W_ZY_formulas[i].formula}</span>
+                    <span class="calculation">${data.new_W_ZY_formulas[i].calculation}</span>
+                    <span class="result">${data.new_W_ZY_formulas[i].name} = ${fourDigitsDec(data.new_W_ZY_formulas[i].result)}</span>
+                </div>`;
+            }
+            html += '<div class="subsection">Bias:</div>';
+            for(let i  = 0; i < data.new_B_Y_formulas.length; i++) {
+                html += `<div class="result-item">
+                    <span class="formula">${data.new_B_Y_formulas[i].formula}</span>
+                    <span class="calculation">${data.new_B_Y_formulas[i].calculation}</span>
+                    <span class="result">${data.new_B_Y_formulas[i].name} = ${fourDigitsDec(data.new_B_Y_formulas[i].result)}</span>
+                </div>`;
+            }
+            html += '</div>';
+
+            // Delta Hidden Layer
+            html += '<div class="result-box"><h3>Delta Hidden Layer</h3>';
+            for (let i = 0; i < data.dZ_formulas.length; i++) {
+                html += `<div class="result-item">
+                    <span class="formula">${data.dZ_formulas[i].formula}</span>
+                    <span class="calculation">${data.dZ_formulas[i].calculation}</span>
+                    <span class="result">= ${fourDigitsDec(data.dZ_formulas[i].result)}</span>
+                </div>`;
+            }
+            html += '</div>';
+
+            // Update Bobot & Bias Hidden
+            html += '<div class="result-box"><h3>Update Bobot & Bias Hidden (New)</h3>';
+            html += '<div class="subsection">Bobot:</div>';
+            for (let i = 0; i < data.new_W_XZ_formulas.length; i++) {
+                html += `<div class="result-item">
+                    <span class="formula">${data.new_W_XZ_formulas[i].formula}</span>
+                    <span class="calculation">${data.new_W_XZ_formulas[i].calculation}</span>
+                    <span class="result">${data.new_W_XZ_formulas[i].name} = ${fourDigitsDec(data.new_W_XZ_formulas[i].result)}</span>
+                </div>`;
+            }
+            html += '<div class="subsection">Bias:</div>';
+            for (let i = 0; i < data.new_B_Z_formulas.length; i++) {
+                 html += `<div class="result-item">
+                    <span class="formula">${data.new_B_Z_formulas[i].formula}</span>
+                    <span class="calculation">${data.new_B_Z_formulas[i].calculation}</span>
+                    <span class="result">${data.new_B_Z_formulas[i].name} = ${fourDigitsDec(data.new_B_Z_formulas[i].result)}</span>
+                </div>`;
+            }
+
+            document.getElementById('results').innerHTML = html;
+            document.getElementById('results').classList.remove('hidden');
+
+            
+            html += '</div>';
+        }
+
+        function fourDigitsDec(value) {
+            return (Math.floor(value * 10000) / 10000);
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            generateInputs();
+        };
+    </script>
+</body>
+</html> 
